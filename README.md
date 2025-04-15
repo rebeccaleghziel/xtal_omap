@@ -26,7 +26,7 @@ You can use pip to install xtal_omap into your preferred environment.
 
 type “python” at the command prompt in your chosen terminal to start a Python session in your active Python environment.
 
-You can now import , create an instance of the nbed class and dosplay the docstring for the LoadFile method:
+You can now create an instance of the Dataset class to get a response:
 
 
     ➜ python
@@ -43,7 +43,10 @@ Please refer to the jupyter notebooks with examples in the directory 'examples' 
     https://github.com/LotharHouben/xtal_omap/scripts/
 
 
-The notebooks use a demonstration data set that is available under https://doi.org/10.5281/zenodo.15212905 
+The notebooks use a demonstration data set that is available under
+
+https://doi.org/10.5281/zenodo.15212905 
+
 The nbed module is required for preprocessing the raw data and obtain a vector list of diffraction peak. nbed is available from
 
 https://github.com/LotharHouben/nbed/
