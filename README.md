@@ -18,7 +18,7 @@ You can use pip to install xtal_omap into your preferred environment.
 
 - Run
 
-      python -m pip install git+https://github.com/LotharHouben/xtal_omap.git@main
+      python -m pip install git+https://github.com/rebeccaleghziel/xtal_omap.git@main
 
 
 
@@ -40,7 +40,7 @@ You can now create an instance of the Dataset class to get a response:
 
 Please refer to the jupyter notebooks with examples in the directory 'examples' at 
 
-    https://github.com/LotharHouben/xtal_omap/scripts/
+    https://github.com/rebeccaleghziel/xtal_omap/scripts/
 
 
 The notebooks use a demonstration data set that is available under
