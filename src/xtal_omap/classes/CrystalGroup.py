@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 from ..stereofunctions import *
 import py4DSTEM
 
+
 class CrystalGroup:
     
     def __init__(self, crystal_class, sweep_size, segment_number, indices, coordinates, orientation_matrix, correlation_number, bragg_peaks):
@@ -32,7 +33,7 @@ class CrystalGroup:
         self.run_orientation()
         # self.calculate_angles()
         self.corr_avg = np.mean(self.correlation_number)
-        self.CoM()
+        self.compute_CoM()
 
     def run_orientation(self):
         self.get_lattice_vectors()
@@ -69,13 +70,21 @@ class CrystalGroup:
 
         return self.Xlattice_avg, self.Ylattice_avg, self.Zlattice_avg
 
+    def flip_lattice(self):
+
+        self.Xlattice_avg = self.rot_180x_180y(self.Xlattice_avg)
+        self.Ylattice_avg = self.rot_180x_180y(self.Ylattice_avg)
+        self.Zlattice_avg = self.rot_180x_180y(self.Zlattice_avg)
+
+        return self.Xlattice_avg, self.Ylattice_avg, self.Zlattice_avg
+    
     def compute_projections(self):
 
         self.proj_a = stereoproj(self.Xlattice_avg)
         self.proj_b = stereoproj(self.Ylattice_avg)
         self.proj_c = stereoproj(self.Zlattice_avg)
 
-    def CoM(self):
+    def compute_CoM(self):
         y_coords = self.coordinates[:, 0]
         x_coords = self.coordinates[:, 1]
 
@@ -84,9 +93,20 @@ class CrystalGroup:
 
         self.CoM = (mean_x, mean_y)
 
+    def apply_rotation_and_shift(self, angle, center):
+
+        self.shift_crystal(center)
+        self.rotate_pixels(angle)
+        self.Xlattice_avg = self.rotate_xy(self.Xlattice_avg, -angle)
+        self.Ylattice_avg = self.rotate_xy(self.Ylattice_avg, -angle)
+        self.Zlattice_avg = self.rotate_xy(self.Zlattice_avg, -angle)
+        self.compute_CoM()
+
     # Functions used in main methods
+
+    # FIX: POLAR and AZIMUTHAL
     
-    def angle_with_z_axis(self, lattice_vec):
+    def polar(self, lattice_vec):
         
         z_axis = np.array([0, 0, 1])
         vectors = lattice_vec
@@ -105,46 +125,102 @@ class CrystalGroup:
         
         return average_theta, std_theta
 
-    def angle_with_x_axis(self, lattice_vec):
+    def azimuthal(self, lattice_vec):
         
-        vectors = lattice_vec
-        vectors = vectors.reshape(-1, 3)
+        vectors = lattice_vec.reshape(-1, 3)
         projected_vector = np.column_stack((vectors[:, 0], vectors[:, 1]))
-        x_axis = np.array([1, 0])
-        
-        # Magnitude of the projected vector and x-vector (=1)
-        projected_vector_magnitude = np.linalg.norm(projected_vector, axis=1)
-        x_axis_magnitude = np.linalg.norm(x_axis)
-        
-        # Dot product between the projected vector and the x-axis unit vector
-        dot_product = np.dot(projected_vector, x_axis)
-        
-        # Obtain angles
-        cos_theta = dot_product / (projected_vector_magnitude * x_axis_magnitude)
-        theta_rad = np.arccos(cos_theta)
+    
+        # Compute angles using arctan2 to get values in [-180, 180]
+        theta_rad = np.arctan2(projected_vector[:, 1], projected_vector[:, 0])
         theta_deg = np.degrees(theta_rad)
-        
+    
+        # Convert negative angles to [0, 360] range
+        theta_deg = np.mod(theta_deg, 360)
+    
         average_theta = np.mean(theta_deg)
         std_theta = np.std(theta_deg)
 
         return average_theta, std_theta
- 
-    # COMPUTE ANGLES TO PUT INTO CLASS VARIABLES
-    
-    # def calculate_angles(self):
-    #     self.average_thetaZz, self.std_thetaZz = self.angle_with_z_axis(self.Zlattice_vec)
-    #     self.average_thetaYz, self.std_thetaYz = self.angle_with_z_axis(self.Ylattice_vec)
-    #     self.average_thetaXz, self.std_thetaXz = self.angle_with_z_axis(self.Xlattice_vec)
-    #     self.average_thetaZx, self.std_thetaZx = self.angle_with_x_axis(self.Zlattice_vec)
-    #     self.average_thetaYx, self.std_thetaYx = self.angle_with_x_axis(self.Ylattice_vec)
-    #     self.average_thetaXx, self.std_thetaXx = self.angle_with_x_axis(self.Xlattice_vec)
+
+    def rot_180x_180y(self, input_V):
         
+        theta = np.radians(180)
+        Rx = np.array([
+            [1, 0, 0],
+            [0, np.cos(theta), -np.sin(theta)],
+            [0, np.sin(theta), np.cos(theta)]
+        ])
+            
+        Ry =  np.array([
+            [np.cos(theta), 0, np.sin(theta)],
+            [0, 1, 0],
+            [-np.sin(theta), 0, np.cos(theta)]
+        ])
+        
+        Rxy_180 = np.dot(Rx, Ry)
+        Vrot = np.dot(Rxy_180, input_V)
+        
+        return Vrot
+
+    def rotate_xy(self, vector, phi):
+            
+        # Rotation matrix in xy-plane
+        R = np.array([
+            [np.cos(phi), -np.sin(phi), 0],
+            [np.sin(phi), np.cos(phi), 0],
+            [0, 0, 1]
+        ])
+        
+        # Perform matrix-vector multiplication
+        rotated_v = R @ vector
+        
+        return rotated_v
+
+    def shift_crystal(self, center):
+        
+        coordinates_new = []
+        xc = center[0]
+        yc = center[1]
+        
+        for coord in self.coordinates:
+            cx = coord[1] - xc
+            cy = coord[0] - yc
+            c = [cy, cx]
     
-    # def reflect_180(self):
-    #     self.Xlattice_avg = rot_180x_180y(self.Xlattice_avg)
-    #     self.Ylattice_avg = rot_180x_180y(self.Ylattice_avg)
-    #     self.Zlattice_avg = rot_180x_180y(self.Zlattice_avg)
-    
+            coordinates_new.append(c) 
+
+        coordinates_new = np.array(coordinates_new)
+        self.coordinates = coordinates_new
+       
+        deltaX1 = abs(self.sweep_size[0] - xc)
+        deltaX2 = abs(self.sweep_size[1] - xc)
+        deltaY1 = abs(self.sweep_size[2] - yc)
+        deltaY2 = abs(self.sweep_size[3] - yc)
+
+        
+        self.sweep_size = [-deltaX1, deltaX2, -deltaY1, deltaY2]
+        # self.compute_CoM()
+
+    def rotate_pixels(self, angle): #along 0, 0
+        
+        theta = angle
+        R = np.array([[np.cos(theta), -np.sin(theta)],
+            [np.sin(theta),  np.cos(theta)]])
+
+        rotated_coordinates = []
+
+        for coord in self.coordinates:
+            
+            cy = coord[0]
+            cx = coord[1]
+            coord_to_rot = [cy, cx]
+            
+            rot_coord = R @ coord_to_rot
+            
+            rotated_coordinates.append([rot_coord[0], rot_coord[1]])
+        
+        rotated_coordinates = np.array(rotated_coordinates)
+        self.coordinates = rotated_coordinates
     
     # METHODS FOR DATA VISUALIZATION
     

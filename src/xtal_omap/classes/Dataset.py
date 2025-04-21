@@ -97,7 +97,7 @@ class Dataset:
                     crystal_class = self.crystal_class,
                     sweep_size = self.sweep_size,
                     segment_number = i,
-                    indices = indices_in,
+                    indices = indices_in, #with respect to the main dataset
                     coordinates = coordinates_in,
                     orientation_matrix = orientation_matrix_in,
                     correlation_number = correlation_in,
@@ -292,7 +292,7 @@ class Dataset:
         
             if len(cluster)>self.min_groupsize:
                 self.groups.append(cluster)
-                group_data_append = [code, avg_CoM, avg_az]
+                group_data_append = [code, avg_CoM, avg_az, avg_Z]
                 self.group_data.append(group_data_append)
                 code = code+1
                 
@@ -307,10 +307,11 @@ class Dataset:
         for group in self.group_data:
             
             CoM_shift = self.shift_center(group[1])
-            theta_az_CoM = self.theta_azimuthal_360(CoM_shift, [1, 0])
-            theta_diff = abs(group[2]-theta_az_CoM)
+            avg_Z = group[3]
             
-            if theta_diff > 90:
+            theta = angle_between_vectors(CoM_shift, avg_Z[0, :2])
+            
+            if theta > 90:
                 group_code = group[0]
                 group_code_flip.append(group_code)
                 idcs_to_flip.extend([self.groups[group_code]])
