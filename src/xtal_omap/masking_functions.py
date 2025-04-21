@@ -35,7 +35,5 @@ def generate_mask(params_inner, params_outer, bf):
     ring_mask = outer_mask & ~inner_mask
     y_coords, x_coords = np.where(ring_mask)
 
-    masked_image = np.zeros_like(bf)
-    masked_image[ring_mask] = bf[ring_mask]
 
-    return y_coords, x_coords, masked_image
+    return y_coords, x_coords
